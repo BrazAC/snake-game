@@ -23,8 +23,10 @@ If the snake head position is the same as the fruit:
     Remove the fruit from the grid
     Add new body part to the end of the snake
     Create a new fruit in another random location of the grid
+    Increase the snake speed
 
-3 - Make this sh@* looks good somehow
+    
+4 - Make this sh@* looks good somehow
 I realy dont no how to do it yet :(
 '''
 import pygame
@@ -56,9 +58,10 @@ def gridDesigner(screen, resolution, lineDistance, snake, fruitSize, fruitColor,
     snakeDesigner(screen, snake)
 
     #Design the fruit
-    fruitDesigner(screen, fruitSize, fruitColor, fruitPosition)
+    gridFruitPosition = fruitDesigner(screen, fruitSize, fruitColor, fruitPosition)
     
     pygame.display.flip()
+    return gridFruitPosition
 
 def snakeDesigner(screen, snake):
     #Desenhar partes da cobra
@@ -87,8 +90,20 @@ def fruitDesigner(screen, fruitSize, fruitColor, pixelFruitPosition):
     #Return fruit position
     return (centerx, centery)
 
-def snakeUpdater(snake, direction, distance):
-    #Update de position of the head
+def snakeUpdater(snake, direction, distance, gridFruitPosition):
+    #Making a deepcopy of the old snake
+    oldSnake = [0]*len(snake)
+    for i in range(len(oldSnake)):
+        if snake[i] != 0 :
+            #color, position, size, speed, direction
+            color = snake[i].color
+            position = snake[i].position
+            size = snake[i].size
+            speed = snake[i].speed
+            directionC = snake[i].direction
+            oldSnake[i] = Snake(color, position, size, speed, directionC)
+
+    #Update de position of the head of the new snake
     if direction == "UP":
         #update y position
         x, y = snake[0].position
@@ -106,13 +121,25 @@ def snakeUpdater(snake, direction, distance):
         x, y = snake[0].position
         snake[0].position = (x + distance, y)
 
-    """#Update the position of the snakeParts
-    for i in range(1, len(snake)):
-        if snake[i] != 0:
-            #The current snakePart assumes the position of the antecessor snakePart
-            #From the head to the "tail"""
+    #Update the position of the parts of the new snake
+    if oldSnake[1] != 0:
+        for i in range(1, len(oldSnake)):
+            if oldSnake[i] != 0:
+                #The current snakePart assumes the position of the antecessor snakePart
+                snake[i].position = oldSnake[i - 1].position
+                lastSnakeBody = i
+    else:
+        lastSnakeBody = 0
 
-    return snake
+    #Verify if the snake had find a fruit
+        #If yes, add a new snakePart to the snakeVector
+    if snake[0].position == gridFruitPosition:
+        snake[lastSnakeBody + 1] = Snake("green", oldSnake[lastSnakeBody].position, snake[0].size, None, None)
+        fruitStatus = True
+    else:
+        fruitStatus = False
+
+    return snake, fruitStatus
 
 def main():
     #Some useful variables
@@ -141,6 +168,7 @@ def main():
     #Initializing fruit
     range = (gridLineDistance // 2, resolution - (gridLineDistance // 2))
     pixelFruitPosition = (random.randint(range[0], range[1]), random.randint(range[0], range[1]))
+    gridFruitPosition = ((pixelFruitPosition[0] // gridLineDistance) + 1, (pixelFruitPosition[1] // gridLineDistance) + 1)
 
     #GAME LOOP
     running = True
@@ -165,11 +193,25 @@ def main():
         
         if gameBegins:
             #Update the snake parts position
-            snake = snakeUpdater(snake, snakeDirection, gridLineDistance)
+            snake, fruitStatus = snakeUpdater(snake, snakeDirection, gridLineDistance, gridFruitPosition)
 
             #Design the grid (design: grid, snake, fruit)
-            gridDesigner(screen, resolution, gridLineDistance, snake, fruitSize, fruitColor, pixelFruitPosition)
-            pygame.time.wait(snake[0].speed)
+            #If the snake not ate the fruit
+            if not fruitStatus:
+                #Design the fruit in the same location
+                gridFruitPosition = gridDesigner(screen, resolution, gridLineDistance, snake, fruitSize, fruitColor, pixelFruitPosition)
+            #If the snake ate the fruit
+            else:
+                #Design the fruit in a new location
+                range = (gridLineDistance // 2, resolution - (gridLineDistance // 2))
+                pixelFruitPosition = (random.randint(range[0], range[1]), random.randint(range[0], range[1]))
+                gridFruitPosition = ((pixelFruitPosition[0] // gridLineDistance) + 1, (pixelFruitPosition[1] // gridLineDistance) + 1)
+                gridFruitPosition = gridDesigner(screen, resolution, gridLineDistance, snake, fruitSize, fruitColor, pixelFruitPosition)
+                #Make the snake move faster
+                screenUpdateSpeed -=  screenUpdateSpeed * 1//100
+                print(screenUpdateSpeed)
+
+            pygame.time.wait(screenUpdateSpeed)
             
     pygame.quit()
 
