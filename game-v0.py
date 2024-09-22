@@ -33,6 +33,12 @@ I realy dont no how to do it yet :(
 import pygame
 import random
 
+def soundPlayer(filePath):
+    #Load the sound
+    pygame.mixer.music.load(filePath)
+    #Play the sound
+    pygame.mixer.music.play()
+
 def gridInitializer(screen, resolution, lineDistance):
     #Design the grid
     x = 0
@@ -91,7 +97,7 @@ def fruitDesigner(screen, fruitSize, fruitColor, pixelFruitPosition):
     #Return fruit position
     return (centerx, centery)
 
-def snakeUpdater(snake, direction, distance, gridFruitPosition):
+def snakeUpdater(snake, direction, distance, gridFruitPosition, score):
     #Making a deepcopy of the old snake
     oldSnake = [0]*len(snake)
     for i in range(len(oldSnake)):
@@ -127,6 +133,8 @@ def snakeUpdater(snake, direction, distance, gridFruitPosition):
         if snake[i] != 0:
             if snake[0].position == snake[i].position:
                 gameContinues = False
+                #Play the game-over sound
+                soundPlayer("./sounds/8-bit-game-over-sound.mp3")
                 break
             else:
                 gameContinues = True
@@ -137,6 +145,8 @@ def snakeUpdater(snake, direction, distance, gridFruitPosition):
     #Verify if the head hit a wall
     if snake[0].position[0] < 0 or snake[0].position[0] > 1000 or snake[0].position[1] < 0 or snake[0].position[1] > 1000:
         gameContinues = False
+        #Play the game-over sound
+        soundPlayer("./sounds/8-bit-game-over-sound.mp3")
 
     #Update the position of the parts of the new snake
     if oldSnake[1] != 0:
@@ -153,26 +163,56 @@ def snakeUpdater(snake, direction, distance, gridFruitPosition):
     if snake[0].position == gridFruitPosition:
         snake[lastSnakeBody + 1] = Snake("green", oldSnake[lastSnakeBody].position, snake[0].size, None, None)
         fruitStatus = True
+        score += 1
+        #Play the score sound
+        soundPlayer("./sounds/8-bit-score-sound.mp3")
     else:
         fruitStatus = False
 
-    return snake, fruitStatus, gameContinues
+    return snake, fruitStatus, gameContinues, score
 
 def menuScreen(screen):
+    #create a font object
+    font = pygame.font.Font('freesansbold.ttf', 22)
+    font1 = pygame.font.Font('freesansbold.ttf', 42)
+
+    # create a text surface object
+    text1 = font1.render('SNAKE GAME', True, (0, 255, 0))
+    text = font.render('PRESS ANY ARROW TO BEGIN', False, (255, 255, 255))
+
+    # create a rectangular object for the text surface object
+    textRect1 = text1.get_rect()
+    textRect = text.get_rect()
+
+    # set the center of the rectangular object.
+    textRect1.center = (500, 450)
+    textRect.center = (500, 500)
+
+    # copying the text surface object to the display surface object at the center coordinate.
+    screen.blit(text1, textRect1)
+    screen.blit(text, textRect)
+
+    pygame.display.update()
+    
+def gameOverScreen(screen, score):
     #create a font object
     font = pygame.font.Font('freesansbold.ttf', 32)
 
     # create a text surface object
-    text = font.render('PRESS ANY ARROW TO PLAY', True, (0, 255, 0))
+    text0 = font.render('GAME OVER', True, (255, 0, 0))
+    text1 = font.render(f'SCORE {score}', True, (255, 255, 255))
 
     # create a rectangular object for the text surface object
-    textRect = text.get_rect()
+    textRect0 = text0.get_rect()
+    textRect1 = text1.get_rect()
 
     # set the center of the rectangular object.
-    textRect.center = (500, 500)
+    textRect0.center = (500, 450)
+    textRect1.center = (500, 500)
 
     # copying the text surface object to the display surface object at the center coordinate.
-    screen.blit(text, textRect)
+    screen.blit(text0, textRect0)
+    screen.blit(text1, textRect1)
 
     pygame.display.update()
 
@@ -186,7 +226,9 @@ def main():
     snakeDirection = None
     fruitColor = "red"
     fruitSize = (gridLineDistance, gridLineDistance)
-    
+    score = 0
+    alreadyBegun = 0
+
     #Initializing pygame
     pygame.init()
     screen = pygame.display.set_mode((resolution, resolution))
@@ -229,29 +271,58 @@ def main():
 
         #Caso saiu do menu/jogo iniciou, iniciar jogo
         if gameBegins:
-            #Update the snake parts position
-            snake, fruitStatus, gameBegins = snakeUpdater(snake, snakeDirection, gridLineDistance, gridFruitPosition)
+            #Reset the score
+            score = 0
 
-            #Design the grid (design: grid, snake, fruit)
-            #If the snake not ate the fruit
-            if not fruitStatus:
-                #Design the fruit in the same location
-                gridFruitPosition = gridDesigner(screen, resolution, gridLineDistance, snake, fruitSize, fruitColor, pixelFruitPosition)
-            #If the snake ate the fruit
-            else:
-                #Design the fruit in a new location
-                range = (gridLineDistance // 2, resolution - (gridLineDistance // 2))
-                pixelFruitPosition = (random.randint(range[0], range[1]), random.randint(range[0], range[1]))
-                gridFruitPosition = ((pixelFruitPosition[0] // gridLineDistance) + 1, (pixelFruitPosition[1] // gridLineDistance) + 1)
-                gridFruitPosition = gridDesigner(screen, resolution, gridLineDistance, snake, fruitSize, fruitColor, pixelFruitPosition)
+            #Play the game-begins sound
+            soundPlayer("./sounds/8-bit-game-begins-sound.mp3")
+
+            while gameBegins:
+                alreadyBegun = 1
+                for event in pygame.event.get():
+                    if event.type == pygame.QUIT:
+                        running = False
+                    elif event.type == pygame.KEYDOWN:
+                        #If some key was pressed, verify if it was an arrow an what arrow it was
+                        if event.key == pygame.K_UP:
+                            gameBegins = True
+                            snakeDirection = "UP"
+                        elif event.key == pygame.K_DOWN:
+                            gameBegins = True
+                            snakeDirection = "DOWN"
+                        elif event.key == pygame.K_LEFT:
+                            gameBegins = True
+                            snakeDirection = "LEFT"
+                        elif event.key == pygame.K_RIGHT:
+                            gameBegins = True
+                            snakeDirection = "RIGHT"
+
+                #Update the snake parts position
+                snake, fruitStatus, gameBegins, score = snakeUpdater(snake, snakeDirection, gridLineDistance, gridFruitPosition, score)
+
+                #Design the grid (design: grid, snake, fruit)
+                #If the snake not ate the fruit
+                if not fruitStatus:
+                    #Design the fruit in the same location
+                    gridFruitPosition = gridDesigner(screen, resolution, gridLineDistance, snake, fruitSize, fruitColor, pixelFruitPosition)
+                #If the snake ate the fruit
+                else:
+                    #Design the fruit in a new location
+                    range = (gridLineDistance // 2, resolution - (gridLineDistance // 2))
+                    pixelFruitPosition = (random.randint(range[0], range[1]), random.randint(range[0], range[1]))
+                    gridFruitPosition = ((pixelFruitPosition[0] // gridLineDistance) + 1, (pixelFruitPosition[1] // gridLineDistance) + 1)
+                    gridFruitPosition = gridDesigner(screen, resolution, gridLineDistance, snake, fruitSize, fruitColor, pixelFruitPosition)
         #Caso perdeu o jogo/jogo nao iniciou, iniciar menu
         else:
-            #Reset the snake
-            snake = [0] * (gridWidth ** 2)
-            head = Snake(pygame.Color(0, 99, 18), (resolution//2, resolution//2), (gridLineDistance, gridLineDistance), screenUpdateSpeed, None)
-            snake[0] = head
-            menuScreen(screen)
-
+            if alreadyBegun == 0:
+                menuScreen(screen)
+            else:
+                #Show game-over screen
+                gameOverScreen(screen, score)
+                #Reset the snake
+                snake = [0] * (gridWidth ** 2)
+                head = Snake(pygame.Color(0, 99, 18), (resolution//2, resolution//2), (gridLineDistance, gridLineDistance), screenUpdateSpeed, None)
+                snake[0] = head
     pygame.quit()
 
 class Snake:
