@@ -68,7 +68,7 @@ def gridDesigner(screen, resolution, lineDistance, snake, fruitSize, fruitColor,
     gridFruitPosition = fruitDesigner(screen, fruitSize, fruitColor, fruitPosition)
     
     pygame.display.flip()
-    pygame.time.wait(125)
+    pygame.time.wait(snake[0].speed)
     
     return gridFruitPosition
 
@@ -308,9 +308,24 @@ def main():
                 #If the snake ate the fruit
                 else:
                     #Design the fruit in a new location
-                    range = (gridLineDistance // 2, resolution - (gridLineDistance // 2))
-                    pixelFruitPosition = (random.randint(range[0], range[1]), random.randint(range[0], range[1]))
-                    gridFruitPosition = ((pixelFruitPosition[0] // gridLineDistance) + 1, (pixelFruitPosition[1] // gridLineDistance) + 1)
+                    generate = True
+                    while generate:
+                        #Generate a random position
+                        range = (gridLineDistance // 2, resolution - (gridLineDistance // 2))
+                        pixelFruitPosition = (random.randint(range[0], range[1]), random.randint(range[0], range[1]))
+                        gridFruitPosition = ((pixelFruitPosition[0] // gridLineDistance) + 1, (pixelFruitPosition[1] // gridLineDistance) + 1)
+
+                        for bodyPart in snake:
+                            if bodyPart != 0:
+                                #If equals, generate another position and test again
+                                if gridFruitPosition == bodyPart.position:
+                                    break
+                                #If the generated position does not equal to any of the snake bodyPart position proceed
+                                else:
+                                    generate = False
+                        print(generate)
+
+                    
                     gridFruitPosition = gridDesigner(screen, resolution, gridLineDistance, snake, fruitSize, fruitColor, pixelFruitPosition)
         #Caso perdeu o jogo/jogo nao iniciou, iniciar menu
         else:
